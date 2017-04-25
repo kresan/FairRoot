@@ -42,3 +42,5 @@ If(Go_FOUND AND ZeroMQ_FOUND)
 EndIf()
 
 add_subdirectory(advanced/MbsTutorial)
+
+add_subdirectory(advanced/ImportPar)
