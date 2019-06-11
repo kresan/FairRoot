@@ -8,7 +8,7 @@
 #ifndef FAIRMODULE_H
 #define FAIRMODULE_H
 
-#include "TNamed.h"                     // for TNamed
+#include "TVirtualMCSensitiveDetector.h"
 
 #include "FairGeoInterface.h"           // for FairGeoInterface
 #include "FairGeoLoader.h"              // for FairGeoLoader
@@ -47,7 +47,7 @@ class TVirtualMC;
  * Changelog: 29.02.2012 [O.Merle] Fixed missing material assignment for top volume.
  *                                 ... and please - add some documentation to your code.
  */
-class FairModule:  public TNamed
+class FairModule:  public TVirtualMCSensitiveDetector
 {
   public:
     /**default ctor*/
@@ -136,6 +136,16 @@ class FairModule:  public TNamed
     TString             fMotherVolumeName; //!
     FairVolume*   getFairVolume(FairGeoNode* fNode);
     void    AddSensitiveVolume(TGeoVolume* v);
+
+    virtual void EndOfEvent() {}
+
+    virtual void Initialize() {}
+
+    virtual void ProcessHits() {}
+    
+    /** has to be called after each event to reset the containers */
+    virtual void   Reset() {}
+
   private:
     /** Re-implimented from ROOT:  TGeoMatrix::SetDefaultName()  */
     void SetDefaultMatrixName(TGeoMatrix* matrix);

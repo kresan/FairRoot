@@ -661,76 +661,9 @@ void FairMCApplication::FinishRunOnWorker()
 //_____________________________________________________________________________
 void FairMCApplication::Stepping()
 {
-// User actions at each step
-// ---
-
-  // Work around for Fluka VMC, which does not call
-  // MCApplication::PreTrack()
-  static Int_t TrackId = 0;
-  if ( fMcVersion ==2 && fMC->GetStack()->GetCurrentTrackNumber() != TrackId ) {
-    PreTrack();
-    TrackId = fMC->GetStack()->GetCurrentTrackNumber();
-  }
-
-  // Check if the volume with id is in the volume multimap.
-  // If it is not in the map the volume is not a sensitive volume 
-  // and we do not call nay of our ProcessHits functions.
-
-  // If the volume is in the multimap, check in second step if the current 
-  // copy is alredy inside the multimap. 
-  // If the volume is not in the multimap add the copy of the volume to the 
-  // multimap. 
-  // In any case call the ProcessHits function for this specific detector.
-  Int_t copyNo;
-  Int_t id = fMC->CurrentVolID(copyNo);
-  Bool_t InMap =kFALSE;
-  fDisVol=0;
-  fDisDet=0;
-  Int_t fCopyNo=0;
-  fVolIter =fVolMap.find(id);
-
-  if (fVolIter!=fVolMap.end()) {
-
-    // Call Process hits for FairVolume with this id, copyNo
-    do {
-      fDisVol=fVolIter->second;
-      fCopyNo=fDisVol->getCopyNo();
-      if(copyNo==fCopyNo) {
-        fDisDet=fDisVol->GetDetector();
-        if (fDisDet) {
-          fDisDet->ProcessHits(fDisVol);
-        }
-        InMap=kTRUE;
-        break;
-      }
-      fVolIter++;
-    }
-    while(fVolIter!=fVolMap.upper_bound(id));
-
-    //    if(fDisVol && !InMap) { // fDisVolume is set previously, no check needed
-
-    // Create new FairVolume with this id, copyNo.
-    // Use the FairVolume with the same id found in the map to get
-    // the link to the detector.
-    // Seems that this never happens (?)
-    if(!InMap) {
-      // cout << "Volume not in map; fDisVol ? " << fDisVol << endl
-      FairVolume* fNewV=new FairVolume( fMC->CurrentVolName(), id);
-      fNewV->setMCid(id);
-      fNewV->setModId(fDisVol->getModId());
-      fNewV->SetModule(fDisVol->GetModule());
-      fNewV->setCopyNo(copyNo);
-      fVolMap.insert(pair<Int_t, FairVolume* >(id, fNewV));
-      fDisDet=fDisVol->GetDetector();
-
-      // LOG(info) << "FairMCApplication::Stepping: new fair volume"
-      //    << id << " " << copyNo << " " <<  fDisDet;
-      if ( fDisDet) {
-        fDisDet->ProcessHits(fNewV);
-      }
-    }
-  }
-
+    Int_t copyNo = 0;
+    Int_t id = 0;
+    
   // If information about the tracks should be stored the information as to be
   // stored for any step.
   // Information about each single step has also to be stored for the other 
@@ -837,12 +770,12 @@ void FairMCApplication::FinishEvent()
   } else {
     fSaveCurrentEvent = kTRUE;
   }
-
-  for (auto detectorPtr : listActiveDetectors)
-  {
-    detectorPtr->EndOfEvent();
-  }
     
+    for(auto const& det : fMapSensitiveDetectors)
+    {
+        det.second->Reset();
+    }
+
   fStack->Reset();
   if(NULL != fTrajFilter) {
     fTrajFilter->Reset();
@@ -1011,7 +944,6 @@ Bool_t FairMCApplication::MisalignGeometry()
 {
   // call this only here
   fRun->AlignGeometry();
-  return true;
 }
 
 //_____________________________________________________________________________
@@ -1503,6 +1435,31 @@ void  FairMCApplication::UndoGeometryModifications()
 
   gGeoManager->ClearPhysicalNodes(kFALSE);
 
+}
+
+void FairMCApplication::ConstructSensitiveDetectors()
+{
+    for(auto const& x : fMapSensitiveDetectors)
+    {
+        LOG(debug) << "FairMCApplication::ConstructSensitiveDetectors "
+        << x.first << " " << x.second;
+        TVirtualMC::GetMC()->SetSensitiveDetector(x.first, x.second);
+    }
+}
+
+void FairMCApplication::AddSensitiveModule(std::string volName, FairModule* module)
+{
+    fMapSensitiveDetectors[volName] = module;
+}
+
+FairVolume* FairMCApplication::GetVolume(const Int_t &mcId)
+{
+    std::multimap <Int_t, FairVolume* >::iterator iter = fVolMap.find(mcId);
+    if(iter == fVolMap.end())
+    {
+        return nullptr;
+    }
+    return iter->second;
 }
 
 ClassImp(FairMCApplication)

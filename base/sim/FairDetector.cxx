@@ -17,6 +17,7 @@
 #include "FairModule.h"                 // for FairModule::svList, etc
 #include "FairVolume.h"                 // for FairVolume
 #include "FairRootManager.h"
+#include "FairMCApplication.h"
 
 #include "TFolder.h"                    // for TFolder
 #include "TList.h"                      // for TList
@@ -131,6 +132,15 @@ void FairDetector::SaveGeoParams()
   }
 }
 // -------------------------------------------------------------------------
+
+
+void FairDetector::ProcessHits()
+{
+    Int_t copyNo;
+    Int_t mcId = TVirtualMC::GetMC()->CurrentVolID(copyNo);
+    FairVolume* vol = FairMCApplication::Instance()->GetVolume(mcId);
+    ProcessHits(vol);
+}
 
 
 ClassImp(FairDetector)
