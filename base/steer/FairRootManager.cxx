@@ -1005,9 +1005,12 @@ char* FairRootManager::GetTreeName()
 char* FairRootManager::GetFolderName()
 {
   char* default_name = (char*)"cbmout";
-  if(! FairRun::Instance()->IsAna())
+  if(FairRun::Instance())
   {
-    default_name = (char*)"cbmroot";
+    if(! FairRun::Instance()->IsAna())
+    {
+      default_name = (char*)"cbmroot";
+    }
   }
   char* workdir = getenv("VMCWORKDIR");
   if(nullptr == workdir)
